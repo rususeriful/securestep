@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#101522">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SecureStep">
+    <meta name="description" content="Autentificator TOTP privat, instalabil pe iPhone.">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icon-180.png">
+    <link rel="stylesheet" href="style.css">
+    <title>SecureStep Authenticator</title>
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <a class="brand" href="#" aria-label="SecureStep Authenticator">
+                <span class="brand-mark" aria-hidden="true">2</span>
+                <span>Secure<span class="brand-accent">Step</span></span>
+            </a>
+            <span class="security-badge"><span class="status-dot"></span> DOAR PE ACEST DISPOZITIV</span>
+        </header>
+
+        <div id="status-message" class="notice" role="status" aria-live="polite" hidden></div>
+
+        <section id="setup-screen" class="screen" hidden>
+            <div class="hero">
+                <p class="eyebrow">AUTENTIFICATOR PERSONAL</p>
+                <h1>Securitate,<br>în ritmul tău.</h1>
+                <p class="intro-copy">Codurile tale 2FA sunt generate privat pe iPhone. Fără Google, fără cont și fără server SecureStep.</p>
+            </div>
+            <form id="setup-form" class="panel setup-panel">
+                <label class="field-label" for="username">Nume de utilizator <span>(opțional)</span></label>
+                <input id="username" class="text-input" type="text" maxlength="60" placeholder="Cum vrei să te numim?" autocomplete="nickname">
+
+                <div class="recovery-card">
+                    <p class="eyebrow">CODUL TĂU DE RECUPERARE</p>
+                    <p class="helper-text">Salvează-l înainte să continui. După reinstalare, vei avea nevoie de acest cod și de fișierul backup criptat pentru a-ți restaura conturile.</p>
+                    <code id="recovery-code" class="recovery-code"></code>
+                    <button id="copy-recovery-code" class="text-button" type="button">Copiază codul</button>
+                </div>
+
+                <label class="checkbox-row">
+                    <input id="recovery-confirm" type="checkbox" required>
+                    <span>Am salvat codul de recuperare într-un loc sigur.</span>
+                </label>
+                <p id="setup-error" class="form-message" aria-live="polite"></p>
+                <button class="button button-primary full-button" type="submit">Am salvat codul — continuă <span aria-hidden="true">→</span></button>
+                <p class="fine-print">SecureStep nu primește și nu poate recupera codul tău secret.</p>
+            </form>
+        </section>
+
+        <section id="restore-screen" class="screen narrow-screen" hidden>
+            <div class="hero compact-hero">
+                <p class="eyebrow">RESTAURARE SECURIZATĂ</p>
+                <h1>Deschide-ți seiful.</h1>
+                <p class="intro-copy">Importă fișierul backup pe care l-ai salvat și introdu codul de recuperare. Decriptarea are loc local pe iPhone.</p>
+            </div>
+            <form id="restore-form" class="panel">
+                <label class="field-label" for="backup-file">Fișier backup criptat</label>
+                <input id="backup-file" class="file-input" type="file" accept=".sstep,application/json">
+                <label class="field-label" for="restore-code">Cod de recuperare</label>
+                <input id="restore-code" class="text-input secret-input" type="password" maxlength="80" placeholder="Introdu codul salvat" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+                <p id="restore-error" class="form-message" aria-live="polite"></p>
+                <button class="button button-primary full-button" type="submit">Decriptează și restaurează <span aria-hidden="true">→</span></button>
+                <button id="go-to-setup" class="text-button centered-button" type="button">Prima utilizare? Configurează seiful</button>
+                <p class="fine-print">Codul și fișierul rămân pe dispozitiv. Nu le trimite nimănui.</p>
+            </form>
+        </section>
+
+        <section id="unlock-screen" class="screen narrow-screen" hidden>
+            <div class="hero compact-hero">
+                <p class="eyebrow">SEIFUL ESTE BLOCAT</p>
+                <h1>Bine ai revenit.</h1>
+                <p class="intro-copy">Introdu codul de recuperare ca să deblochezi seiful criptat pe acest dispozitiv.</p>
+            </div>
+            <form id="unlock-form" class="panel">
+                <label class="field-label" for="unlock-code">Cod de recuperare</label>
+                <input id="unlock-code" class="text-input secret-input" type="password" maxlength="80" placeholder="Introdu codul salvat" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+                <p id="unlock-error" class="form-message" aria-live="polite"></p>
+                <button class="button button-primary full-button" type="submit">Deblochează aplicația <span aria-hidden="true">→</span></button>
+                <button id="show-restore" class="text-button" type="button">Ai reinstalat aplicația? Importă un backup</button>
+            </form>
+        </section>
+
+        <section id="home-screen" class="screen" hidden>
+            <div class="home-heading">
+                <div>
+                    <p class="eyebrow">AUTENTIFICATOR PERSONAL</p>
+                    <h1 id="greeting">Codurile tale.</h1>
+                    <p class="intro-copy">Codurile sunt calculate pe dispozitiv și se reînnoiesc automat.</p>
+                </div>
+                <button id="lock-vault" class="icon-button" type="button" aria-label="Blochează seiful" title="Blochează seiful">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+
+            <div class="toolbar">
+                <button id="add-account" class="button button-primary" type="button"><span aria-hidden="true">＋</span> Adaugă un cont</button>
+                <button id="export-backup" class="button button-secondary" type="button">Exportă backup</button>
+                <button id="open-settings" class="button button-quiet" type="button">Setări</button>
+            </div>
+
+            <div id="home-notice" class="notice notice-info" role="status" hidden></div>
+            <div id="account-list" class="account-list" aria-label="Conturi de autentificare"></div>
+            <section id="empty-state" class="empty-state" hidden>
+                <div class="empty-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="14" y="3" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="14" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M14 14h3v3h-3zM20 14v2m-3 3h4m-2-2v4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+                </div>
+                <h2>Începe cu primul tău cont</h2>
+                <p>Deschide configurarea 2FA pe site și scanează QR-ul afișat sau introdu cheia manual.</p>
+                <button id="empty-add-account" class="button button-secondary" type="button">Adaugă primul cont</button>
+            </section>
+            <p class="security-note"><span aria-hidden="true">i</span> Conturile sunt criptate pe acest dispozitiv. Păstrează separat fișierul backup și codul de recuperare.</p>
+        </section>
+    </main>
+
+    <dialog id="add-dialog" class="dialog">
+        <form id="account-form" class="dialog-card">
+            <div class="dialog-heading">
+                <div><p class="eyebrow">CONT NOU</p><h2>Adaugă un cont</h2></div>
+                <button id="close-dialog" class="icon-button close-button" type="button" aria-label="Închide">×</button>
+            </div>
+            <div class="tabs" role="tablist" aria-label="Metoda de adăugare">
+                <button class="tab active" id="scan-tab" type="button" role="tab" aria-selected="true">Scanează QR</button>
+                <button class="tab" id="manual-tab" type="button" role="tab" aria-selected="false">Introdu manual</button>
+            </div>
+            <section id="scan-panel" class="tab-panel">
+                <p class="helper-text">Scanează cu camera iPhone-ului QR-ul <code>otpauth://</code> afișat în setările 2FA ale site-ului.</p>
+                <video id="camera-preview" class="camera-preview" autoplay muted playsinline hidden></video>
+                <button id="start-camera" class="button button-secondary full-button" type="button">Pornește camera</button>
+                <label class="button button-quiet full-button import-label" for="qr-image">Scanează o captură de ecran</label>
+                <input id="qr-image" class="visually-hidden" type="file" accept="image/*">
+                <p id="scan-message" class="form-message" aria-live="polite"></p>
+                <button id="retry-camera" class="text-button centered-button" type="button" hidden>Încearcă alt cod QR</button>
+                <p id="camera-unsupported" class="fine-print" hidden>Camera nu este disponibilă? Importă o captură a QR-ului sau introdu manual cheia de configurare.</p>
+            </section>
+            <section id="manual-panel" class="tab-panel" hidden>
+                <p class="helper-text">Introdu cheia secretă de configurare oferită de site. Nu introduce parola contului tău.</p>
+            </section>
+            <div id="account-fields" hidden>
+                <div class="form-grid">
+                    <div><label class="field-label" for="issuer">Serviciu</label><input id="issuer" class="text-input" type="text" maxlength="80" placeholder="Ex.: GitHub" required></div>
+                    <div><label class="field-label" for="account-name">Cont / email</label><input id="account-name" class="text-input" type="text" maxlength="120" placeholder="nume@exemplu.ro" required></div>
+                </div>
+                <label class="field-label" for="secret">Cheie secretă Base32</label>
+                <input id="secret" class="text-input secret-input" type="text" maxlength="128" placeholder="JBSWY3DPEHPK3PXP" autocapitalize="characters" autocomplete="off" spellcheck="false" required>
+                <p class="fine-print">Codurile standard folosesc 6 cifre și un interval de 30 de secunde.</p>
+                <button class="button button-primary full-button" type="submit">Salvează contul</button>
+            </div>
+            <p id="form-error" class="form-message" aria-live="polite"></p>
+        </form>
+    </dialog>
+
+    <dialog id="settings-dialog" class="dialog settings-dialog">
+        <section class="dialog-card">
+            <div class="dialog-heading">
+                <div><p class="eyebrow">SECURITATE ȘI DATE</p><h2>Setări</h2></div>
+                <button id="close-settings" class="icon-button close-button" type="button" aria-label="Închide">×</button>
+            </div>
+            <label class="field-label" for="settings-username">Nume de utilizator</label>
+            <input id="settings-username" class="text-input" type="text" maxlength="60" placeholder="Username opțional">
+            <button id="save-username" class="button button-secondary full-button settings-action" type="button">Salvează numele</button>
+            <div class="recovery-card settings-recovery">
+                <p class="eyebrow">BACKUP-UL TĂU</p>
+                <p class="helper-text">Exportă fișierul backup criptat și păstrează-l separat de codul de recuperare. Ai nevoie de ambele pentru a restaura conturile.</p>
+                <button id="settings-export" class="button button-secondary full-button" type="button">Descarcă backup criptat</button>
+                <label class="button button-quiet full-button import-label" for="settings-import-file">Importă backup criptat</label>
+                <input id="settings-import-file" class="visually-hidden" type="file" accept=".sstep,application/json">
+            </div>
+            <p id="settings-message" class="form-message" aria-live="polite"></p>
+            <p class="fine-print">SecureStep nu sincronizează conturi în cloud. Nu trimite fișierul backup sau codul de recuperare nimănui.</p>
+        </section>
+    </dialog>
+
+    <template id="account-template">
+        <article class="account-card">
+            <div class="account-brand" aria-hidden="true"></div>
+            <div class="account-info"><h2 class="account-issuer"></h2><p class="account-name"></p></div>
+            <div class="code-area">
+                <div class="generated-code"></div>
+                <div class="code-meta"><span class="code-countdown"></span><progress class="code-progress" max="30" value="30"></progress></div>
+            </div>
+            <button class="copy-code button button-secondary" type="button">Copiază</button>
+            <button class="delete-account icon-button" type="button" aria-label="Șterge contul" title="Șterge contul">×</button>
+        </article>
+    </template>
+    <script src="lib/jsQR.js" defer></script>
+    <script src="app.js" defer></script>
+</body>
+</html>
